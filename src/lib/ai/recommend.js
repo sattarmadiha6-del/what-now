@@ -1,7 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const SYSTEM_PROMPT = `You are the decision-making engine inside "What Now?", an app built for one purpose: to fight food decision fatigue.
 
 Your single job is to remove choice, not add it. The person opening this app is tired, hungry, and does not want a menu of options - they want one confident answer, the way a friend who cooks would just tell them what to make.
@@ -44,19 +40,38 @@ Dishes this person has rejected in recent past sessions (soft signal only): ${
 
 Give me the one dish I should make right now.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 500,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
-  });
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 500,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+      }),
+    }
+  );
 
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock) {
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq API error: ${response.status} ${errText}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.choices?.[0]?.message?.content;
+  if (!rawText) {
     throw new Error("No text response from model");
   }
 
-  const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+  const cleaned = rawText.replace(/```json|```/g, "").trim();
   const parsed = JSON.parse(cleaned);
 
   if (!parsed.dish_name || !parsed.reason || !parsed.recipe) {
