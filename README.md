@@ -24,7 +24,7 @@ running log of your own food decisions rather than a static database of recipes.
 
 ## b. Live URL
 
-🔗 **[Add your live Vercel URL here]**
+🔗 https://what-now-ffq1-mefe4v0ys-madiha2.vercel.app/login
 
 ## c. Features
 
