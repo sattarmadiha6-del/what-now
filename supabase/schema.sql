@@ -12,6 +12,8 @@ create table if not exists public.checkins (
   dish_name text not null,
   dish_reason text not null,
   dish_recipe text not null,
+  time_minutes integer,
+  difficulty text check (difficulty in ('Easy', 'Medium', 'Hard')),
   status text not null default 'suggested' check (status in ('suggested', 'accepted', 'rejected')),
   created_at timestamptz not null default now()
 );

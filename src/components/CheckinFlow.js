@@ -1,25 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
-  BatteryLow,
-  BatteryMedium,
-  BatteryFull,
   Sparkles,
-  ArrowRight,
+  UtensilsCrossed,
   Loader2,
   AlertCircle,
-  ThumbsDown,
-  ChefHat,
+  Heart,
   RotateCcw,
-  Stamp,
+  Clock,
+  Gauge,
+  RefreshCw,
 } from "lucide-react";
 
-const ENERGY_OPTIONS = [
-  { value: "low", label: "Low", hint: "just get me fed", Icon: BatteryLow },
-  { value: "medium", label: "Medium", hint: "a real meal is fine", Icon: BatteryMedium },
-  { value: "high", label: "High", hint: "I actually want to cook", Icon: BatteryFull },
-];
+const ENERGY_OPTIONS = ["Low", "Medium", "High"];
+
+function parseIngredientList(ingredients) {
+  return ingredients
+    .split(",")
+    .map((i) => i.trim())
+    .filter(Boolean);
+}
+
+function parseRecipeSteps(recipe) {
+  return recipe
+    .split("\n")
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
+    .filter(Boolean);
+}
 
 export default function CheckinFlow() {
   const [stage, setStage] = useState("form"); // form | loading | result | error
@@ -28,9 +36,19 @@ export default function CheckinFlow() {
   const [craving, setCraving] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [checkin, setCheckin] = useState(null);
+  const [checkedItems, setCheckedItems] = useState({});
   const [rejectedNames, setRejectedNames] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [decided, setDecided] = useState(false);
+
+  const ingredientList = useMemo(
+    () => (checkin ? parseIngredientList(checkin.ingredients) : []),
+    [checkin]
+  );
+  const recipeSteps = useMemo(
+    () => (checkin ? parseRecipeSteps(checkin.dish_recipe) : []),
+    [checkin]
+  );
 
   async function requestRecommendation(currentSessionId) {
     setStage("loading");
@@ -41,7 +59,7 @@ export default function CheckinFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ingredients,
-          energy,
+          energy: energy.toLowerCase(),
           craving,
           sessionId: currentSessionId,
         }),
@@ -52,6 +70,7 @@ export default function CheckinFlow() {
       }
       setSessionId(data.sessionId);
       setCheckin(data.checkin);
+      setCheckedItems({});
       setStage("result");
     } catch (err) {
       setErrorMsg(err.message);
@@ -99,109 +118,104 @@ export default function CheckinFlow() {
   }
 
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-md mx-auto">
       {stage === "form" && (
         <form
           onSubmit={handleSubmit}
-          className="animate-card-in bg-white rounded-2xl card-shadow-lg p-7 space-y-6"
+          className="animate-card-in bg-card rounded-3xl card-shadow-lg p-6 space-y-6"
         >
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-sage-dim text-sage">
-              <Sparkles size={20} />
-            </span>
-            <div>
-              <p className="font-card text-2xl leading-tight">
-                What&apos;s in reach?
-              </p>
-              <p className="text-sm text-ink-soft mt-0.5">
-                No menu, no scrolling. Tell me what you&apos;ve got and I&apos;ll decide.
-              </p>
+          <h2 className="font-heading font-bold text-xl">
+            What do you have today?
+          </h2>
+
+          <div>
+            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-2">
+              Ingredients
+            </label>
+            <div className="relative">
+              <textarea
+                required
+                rows={3}
+                value={ingredients}
+                onChange={(e) => setIngredients(e.target.value)}
+                placeholder="Eggs, tomatoes, bread..."
+                className="w-full border border-border bg-cream rounded-2xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-green resize-none"
+              />
+              <UtensilsCrossed
+                size={16}
+                className="absolute right-4 bottom-3.5 text-ink-soft"
+              />
             </div>
           </div>
 
           <div>
-            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1.5">
-              Ingredients you have
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-              placeholder="e.g. eggs, half a loaf of bread, tomatoes, cheddar"
-              className="w-full border border-clay bg-cream/60 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-sage resize-none transition-shadow"
-            />
-          </div>
-
-          <div>
             <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-2">
-              Energy to cook
+              Cooking energy
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex gap-2">
               {ENERGY_OPTIONS.map((opt) => (
                 <button
                   type="button"
-                  key={opt.value}
-                  onClick={() => setEnergy(opt.value)}
-                  className={`rounded-xl border px-3 py-3 text-left transition-all ${
-                    energy === opt.value
-                      ? "border-sage bg-sage-dim ring-1 ring-sage"
-                      : "border-clay bg-cream/60 hover:border-sage/60"
+                  key={opt}
+                  onClick={() => setEnergy(opt)}
+                  className={`flex-1 rounded-full py-2.5 text-sm font-medium border transition-colors ${
+                    energy === opt
+                      ? "bg-green text-cream border-green"
+                      : "bg-cream text-ink-soft border-border hover:border-green/50"
                   }`}
                 >
-                  <opt.Icon
-                    size={16}
-                    className={energy === opt.value ? "text-sage" : "text-ink-soft"}
-                  />
-                  <div className="font-medium text-sm mt-1.5">{opt.label}</div>
-                  <div className="text-[11px] text-ink-soft leading-tight">
-                    {opt.hint}
-                  </div>
+                  {opt}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1.5">
-              Craving something specific? (optional)
+            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-2">
+              Craving
             </label>
-            <input
-              type="text"
-              value={craving}
-              onChange={(e) => setCraving(e.target.value)}
-              placeholder="e.g. something spicy, something warm"
-              className="w-full border border-clay bg-cream/60 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-sage transition-shadow"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={craving}
+                onChange={(e) => setCraving(e.target.value)}
+                placeholder="Something spicy..."
+                className="w-full border border-border bg-cream rounded-2xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-green"
+              />
+              <Sparkles
+                size={16}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-soft"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={!ingredients.trim() || !energy}
-            className="w-full flex items-center justify-center gap-2 bg-ink text-cream rounded-xl py-3 font-medium text-sm hover:bg-stamp transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink"
+            className="w-full flex items-center justify-center gap-2 bg-green text-cream rounded-full py-3.5 font-medium text-sm hover:bg-green-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Decide for me
-            <ArrowRight size={16} />
+            Suggest My Meal
+            <Sparkles size={16} />
           </button>
         </form>
       )}
 
       {stage === "loading" && (
-        <div className="animate-card-in bg-white rounded-2xl card-shadow p-12 text-center">
-          <Loader2 className="animate-spin mx-auto mb-3 text-sage" size={28} />
-          <p className="font-card text-lg">Thinking, not scrolling…</p>
+        <div className="animate-card-in bg-card rounded-3xl card-shadow p-12 text-center">
+          <Loader2 className="animate-spin mx-auto mb-3 text-green" size={28} />
+          <p className="font-heading font-medium">Thinking, not scrolling…</p>
         </div>
       )}
 
       {stage === "error" && (
-        <div className="animate-card-in bg-white rounded-2xl card-shadow border border-stamp/30 p-7 text-center space-y-4">
-          <AlertCircle className="mx-auto text-stamp" size={28} />
-          <p className="text-stamp text-sm">{errorMsg}</p>
+        <div className="animate-card-in bg-card rounded-3xl card-shadow border border-danger/30 p-7 text-center space-y-4">
+          <AlertCircle className="mx-auto text-danger" size={28} />
+          <p className="text-danger text-sm">{errorMsg}</p>
           <button
             onClick={() => requestRecommendation(sessionId)}
-            className="inline-flex items-center gap-2 bg-ink text-cream rounded-xl px-4 py-2.5 text-sm hover:bg-stamp transition-colors"
+            className="inline-flex items-center gap-2 bg-green text-cream rounded-full px-5 py-2.5 text-sm hover:bg-green-dark transition-colors"
           >
-            <RotateCcw size={14} />
+            <RefreshCw size={14} />
             Try again
           </button>
         </div>
@@ -209,62 +223,133 @@ export default function CheckinFlow() {
 
       {stage === "result" && checkin && (
         <div className="space-y-4">
-          <div className="animate-card-in relative bg-white rounded-2xl card-shadow-lg p-7 overflow-hidden">
-            <div className="absolute left-0 top-8 bottom-8 w-1 rounded-r bg-sage" />
-            {decided && (
-              <div className="animate-stamp-in absolute top-6 right-6 flex items-center gap-1.5 border-2 border-stamp text-stamp font-card text-xs tracking-widest uppercase px-3 py-1.5 rotate-6 rounded-md select-none">
-                <Stamp size={13} />
-                Decided
+          <div className="animate-card-in bg-card rounded-3xl card-shadow-lg overflow-hidden">
+            {/* photo-style hero block */}
+            <div className="relative h-44 bg-gradient-to-br from-green to-green-dark flex items-end p-5">
+              {decided && (
+                <span className="animate-badge-in absolute top-4 right-4 flex items-center gap-1 bg-cream text-green text-xs font-semibold px-3 py-1 rounded-full">
+                  ✓ Decided
+                </span>
+              )}
+              <div>
+                <h2 className="font-heading font-bold text-2xl text-cream leading-tight">
+                  {checkin.dish_name}
+                </h2>
+                <div className="flex items-center gap-3 mt-2 text-cream/85 text-xs font-medium">
+                  {checkin.time_minutes && (
+                    <span className="flex items-center gap-1">
+                      <Clock size={13} />
+                      {checkin.time_minutes}m
+                    </span>
+                  )}
+                  {checkin.difficulty && (
+                    <span className="flex items-center gap-1">
+                      <Gauge size={13} />
+                      {checkin.difficulty}
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
-            <p className="font-meta text-xs uppercase tracking-widest text-sage mb-3 flex items-center gap-1.5">
-              <ChefHat size={13} />
-              Today&apos;s pick
-            </p>
-            <h2 className="font-card text-2xl mb-3 pr-20">
-              {checkin.dish_name}
-            </h2>
-            <p className="text-ink-soft text-sm italic mb-6 border-l-2 border-clay pl-3">
-              {checkin.dish_reason}
-            </p>
-            <p className="font-meta text-xs uppercase tracking-wide text-ink-soft mb-2">
-              How to make it
-            </p>
-            <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed">
-              {checkin.dish_recipe}
-            </pre>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-green-tint rounded-2xl px-4 py-3">
+                <p className="font-meta text-[11px] uppercase tracking-widest text-green mb-1">
+                  Today&apos;s selection
+                </p>
+                <p className="text-sm italic text-ink">
+                  &ldquo;{checkin.dish_reason}&rdquo;
+                </p>
+              </div>
+
+              {ingredientList.length > 0 && (
+                <div>
+                  <p className="font-heading font-semibold text-sm mb-2.5">
+                    Pantry checklist
+                  </p>
+                  <div className="space-y-1.5">
+                    {ingredientList.map((item, i) => (
+                      <label
+                        key={i}
+                        className="flex items-center gap-2.5 text-sm cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!checkedItems[i]}
+                          onChange={() =>
+                            setCheckedItems((prev) => ({
+                              ...prev,
+                              [i]: !prev[i],
+                            }))
+                          }
+                          className="w-4 h-4 rounded accent-green"
+                        />
+                        <span
+                          className={
+                            checkedItems[i]
+                              ? "line-through text-ink-soft"
+                              : "text-ink"
+                          }
+                        >
+                          {item}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recipeSteps.length > 0 && (
+                <div>
+                  <p className="font-heading font-semibold text-sm mb-2.5">
+                    The flow
+                  </p>
+                  <ol className="space-y-3">
+                    {recipeSteps.map((step, i) => (
+                      <li key={i} className="flex gap-3 text-sm">
+                        <span className="font-meta text-xs text-green font-medium flex-shrink-0 pt-0.5">
+                          {String(i + 1).padStart(2, "0")}.
+                        </span>
+                        <span className="text-ink leading-relaxed">
+                          {step}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
           </div>
 
-          {!decided && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleReject}
-                className="flex-1 flex items-center justify-center gap-2 border border-clay bg-white rounded-xl py-3 text-sm hover:border-stamp hover:text-stamp transition-colors"
-              >
-                <ThumbsDown size={15} />
-                Not feeling it
-              </button>
+          {!decided ? (
+            <div className="space-y-2.5">
               <button
                 onClick={handleAccept}
-                className="flex-1 flex items-center justify-center gap-2 bg-sage text-cream rounded-xl py-3 text-sm font-medium hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 bg-green text-cream rounded-full py-3.5 text-sm font-medium hover:bg-green-dark transition-colors"
               >
+                <Heart size={16} />
                 I&apos;ll make this
               </button>
+              <button
+                onClick={handleReject}
+                className="w-full flex items-center justify-center gap-2 border border-border bg-card rounded-full py-3.5 text-sm text-ink-soft hover:border-danger hover:text-danger transition-colors"
+              >
+                <RotateCcw size={15} />
+                Not feeling it
+              </button>
             </div>
-          )}
-
-          {decided && (
+          ) : (
             <button
               onClick={startOver}
-              className="w-full flex items-center justify-center gap-2 border border-clay bg-white rounded-xl py-3 text-sm hover:border-sage transition-colors"
+              className="w-full flex items-center justify-center gap-2 border border-border bg-card rounded-full py-3.5 text-sm hover:border-green transition-colors"
             >
-              <RotateCcw size={15} />
+              <RefreshCw size={15} />
               New check-in
             </button>
           )}
 
           {rejectedNames.length > 0 && (
-            <div className="text-xs text-ink-soft font-meta bg-white/60 rounded-xl px-3.5 py-2.5 border border-clay">
+            <div className="text-xs text-ink-soft font-meta bg-card rounded-2xl px-4 py-2.5 border border-border">
               <span className="uppercase tracking-wide">Not today: </span>
               {rejectedNames.map((name, i) => (
                 <span key={i} className="line-through mr-2">

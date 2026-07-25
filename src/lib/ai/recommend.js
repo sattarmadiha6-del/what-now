@@ -13,12 +13,16 @@ RULES YOU MUST FOLLOW:
 5. You will sometimes be given a list of dishes this same person has already rejected in this session, or rejected recently in past sessions. NEVER repeat a rejected dish in the same session. Use past rejection patterns as a soft signal (e.g. if they consistently reject soups, lean away from soups) but do not mention this reasoning to the user explicitly - just quietly make a better pick.
 6. Your "reason" must be ONE short sentence (max ~20 words), written like a friend explaining their pick in passing, not a nutritionist justifying a decision. Reference what they told you (ingredients/energy/craving) concretely.
 7. Your "recipe" must be genuinely usable: 3-6 short numbered steps, plain language, no filler, assuming a home kitchen.
+8. Estimate "time_minutes" as a realistic integer for the whole dish (prep + cook), consistent with the energy level.
+9. Set "difficulty" to exactly one of "Easy", "Medium", or "Hard", consistent with the energy level and number of steps.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble, in exactly this shape:
 {
   "dish_name": "string, the name of the dish",
   "reason": "string, one short sentence",
-  "recipe": "string, numbered steps separated by newlines, e.g. 1. ...\\n2. ...\\n3. ..."
+  "recipe": "string, numbered steps separated by newlines, e.g. 1. ...\\n2. ...\\n3. ...",
+  "time_minutes": integer,
+  "difficulty": "Easy" | "Medium" | "Hard"
 }`;
 
 export async function getRecommendation({
@@ -50,7 +54,7 @@ Give me the one dish I should make right now.`;
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 500,
+        max_tokens: 600,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -78,5 +82,15 @@ Give me the one dish I should make right now.`;
     throw new Error("Model response missing required fields");
   }
 
-  return parsed;
+  return {
+    dish_name: parsed.dish_name,
+    reason: parsed.reason,
+    recipe: parsed.recipe,
+    time_minutes: Number.isFinite(parsed.time_minutes)
+      ? parsed.time_minutes
+      : null,
+    difficulty: ["Easy", "Medium", "Hard"].includes(parsed.difficulty)
+      ? parsed.difficulty
+      : null,
+  };
 }

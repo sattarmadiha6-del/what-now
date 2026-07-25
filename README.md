@@ -24,33 +24,38 @@ running log of your own food decisions rather than a static database of recipes.
 
 ## b. Live URL
 
-🔗 **[Add your live Vercel URL here after deploying — see Section g]**
+🔗 **[Add your live Vercel URL here]**
 
 ## c. Features
 
 - Email/password sign-up and login (Supabase Auth), so your history is saved to your
   account and available from any device
-- Check-in form: free-text ingredients, an energy-level picker (low / medium / high), and
+- Check-in form: free-text ingredients, an energy-level picker (Low / Medium / High), and
   an optional craving
-- AI generates **exactly one** dish recommendation with a short reason and a full numbered
-  recipe — never a list of options
-- "Not feeling it" — regenerates a new suggestion, permanently excluding anything already
-  rejected in that session
-- "I'll make this" — marks a dish as accepted/decided, stamped visually on the card
+- AI generates **exactly one** dish recommendation — dish name, one-line reason, estimated
+  time, difficulty, and a full numbered recipe — never a list of options
+- **Pantry checklist**: the ingredients you entered are shown as tickable checkboxes on the
+  recommendation card, so you can check them off as you cook
+- **"Not feeling it"** — regenerates a new suggestion, permanently excluding anything
+  already rejected in that session
+- **"I'll make this"** — marks a dish as accepted/decided, stamped visually on the card
 - Rejection memory across sessions — the AI is told what you've rejected recently and
   quietly steers away from those patterns
-- History page — every past check-in, grouped by session, showing what you accepted and
-  what you rejected, plus a "dishes you keep saying no to" pattern summary
+- History page — every past check-in, grouped by session, with a "Foods you usually skip"
+  pattern summary and a one-click **CSV export** of your full history
+- Profile page — account info and quick stats (total check-ins, decided, skipped)
 - Row-level security in the database — every user can only ever see their own check-ins
 
 ## d. The AI feature
 
 **What it does**: takes your ingredients, energy level, optional craving, and your
 rejection history, and returns a single structured recommendation (dish name, one-sentence
-reason, numbered recipe) as JSON, which the app then renders as a recipe card.
+reason, numbered recipe, estimated time, difficulty) as JSON, which the app then renders as
+a recipe card.
 
-**Model used**: Claude (Anthropic API), called server-side from a Next.js API route so the
-API key never reaches the browser.
+**Model used**: Llama 3.3 70B via the **Groq API** (OpenAI-compatible chat completions
+endpoint), called server-side from a Next.js API route so the API key never reaches the
+browser.
 
 **The system prompt** (the actual instructions sent to the model, in
 `src/lib/ai/recommend.js`):
@@ -71,30 +76,35 @@ RULES YOU MUST FOLLOW:
 5. You will sometimes be given a list of dishes this same person has already rejected in this session, or rejected recently in past sessions. NEVER repeat a rejected dish in the same session. Use past rejection patterns as a soft signal (e.g. if they consistently reject soups, lean away from soups) but do not mention this reasoning to the user explicitly - just quietly make a better pick.
 6. Your "reason" must be ONE short sentence (max ~20 words), written like a friend explaining their pick in passing, not a nutritionist justifying a decision. Reference what they told you (ingredients/energy/craving) concretely.
 7. Your "recipe" must be genuinely usable: 3-6 short numbered steps, plain language, no filler, assuming a home kitchen.
+8. Estimate "time_minutes" as a realistic integer for the whole dish (prep + cook), consistent with the energy level.
+9. Set "difficulty" to exactly one of "Easy", "Medium", or "Hard", consistent with the energy level and number of steps.
 
 Respond ONLY with valid JSON, no markdown fences, no preamble, in exactly this shape:
 {
   "dish_name": "string, the name of the dish",
   "reason": "string, one short sentence",
-  "recipe": "string, numbered steps separated by newlines, e.g. 1. ...\n2. ...\n3. ..."
+  "recipe": "string, numbered steps separated by newlines, e.g. 1. ...\n2. ...\n3. ...",
+  "time_minutes": integer,
+  "difficulty": "Easy" | "Medium" | "Hard"
 }
 ```
 
 The rejection history (this session + recent past sessions) is passed in the user message
 alongside the ingredients/energy/craving on every call, so the "quietly learns your
-patterns" behaviour is driven entirely by what's stored in the database, not by any
-memory built into the model itself.
+patterns" behaviour is driven entirely by what's stored in the database, not by any memory
+built into the model itself.
 
 ## e. Tools, services, and models used
 
 - **Next.js** (App Router, JavaScript) — frontend and backend in one framework
 - **Supabase** — Postgres database + email/password authentication, with row-level
   security policies restricting each user to their own data
-- **Anthropic API (Claude, `claude-haiku-4-5-20251001`)** — the AI recommendation feature
+- **Groq API** (`llama-3.3-70b-versatile`) — the AI recommendation feature, free tier, no
+  card required
 - **Tailwind CSS v4** — styling
+- **lucide-react** — icons
 - **Vercel** — hosting/deployment
-- **Fontsource** (Courier Prime, IBM Plex Sans, IBM Plex Mono) — self-hosted fonts for the
-  recipe-index-card visual design
+- **Fontsource** (IBM Plex Sans, IBM Plex Mono) — self-hosted fonts
 - Built with the help of **Claude** (Anthropic) as a coding assistant
 
 ## f. Screenshots
@@ -103,7 +113,7 @@ memory built into the model itself.
 
 1. The check-in form
 2. A generated recommendation card
-3. The history page with rejection patterns
+3. The history page
 
 ```markdown
 ![Check-in form](./screenshots/checkin.png)
@@ -129,15 +139,15 @@ memory built into the model itself.
    - Go to **Project Settings → Data API** and copy your **Project URL** and
      **publishable (anon) key**
 
-3. **Get an Anthropic API key**
-   - Sign up at [console.anthropic.com](https://console.anthropic.com)
-   - Go to **Settings → API Keys** → create a key
+3. **Get a free Groq API key**
+   - Sign up at [console.groq.com](https://console.groq.com) (no card required)
+   - Go to **API Keys → Create API Key**
 
 4. **Set environment variables**
    ```bash
    cp .env.local.example .env.local
    ```
-   Fill in `.env.local` with your Supabase URL/key and your Anthropic API key.
+   Fill in `.env.local` with your Supabase URL/key and your Groq API key.
 
 5. **Run it**
    ```bash
@@ -152,7 +162,7 @@ memory built into the model itself.
 2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import your GitHub repo.
 3. In the Vercel project settings, add the same three environment variables from
    `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `ANTHROPIC_API_KEY`) under **Settings → Environment Variables**.
+   `GROQ_API_KEY`) under **Settings → Environment Variables**.
 4. Deploy. Vercel gives you a public URL — that's your live app.
 
 ## Database schema
@@ -160,4 +170,6 @@ memory built into the model itself.
 See `supabase/schema.sql` — one table (`checkins`) storing every suggestion shown to a
 user, with a `status` of `suggested`, `accepted`, or `rejected`, grouped by a `session_id`
 per decision session. Row-level security ensures a user can only read or write their own
-rows.
+rows. If you already ran an earlier version of the schema, run
+`supabase/migration_add_time_difficulty.sql` once to add the newer `time_minutes` and
+`difficulty` columns.

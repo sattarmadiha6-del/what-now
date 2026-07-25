@@ -78,6 +78,8 @@ export async function POST(request) {
       dish_name: recommendation.dish_name,
       dish_reason: recommendation.reason,
       dish_recipe: recommendation.recipe,
+      time_minutes: recommendation.time_minutes,
+      difficulty: recommendation.difficulty,
       status: "suggested",
     })
     .select()

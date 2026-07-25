@@ -1,8 +1,8 @@
-import Header from "@/components/Header";
+import GreetingHeader from "@/components/GreetingHeader";
+import BottomNav from "@/components/BottomNav";
+import ExportHistoryButton from "@/components/ExportHistoryButton";
 import { createClient } from "@/lib/supabase/server";
-import { Clock, TrendingDown, CalendarX, BatteryLow, BatteryMedium, BatteryFull } from "lucide-react";
-
-const ENERGY_ICON = { low: BatteryLow, medium: BatteryMedium, high: BatteryFull };
+import { TrendingDown, CalendarX, Clock, Gauge } from "lucide-react";
 
 function groupBySession(rows) {
   const sessions = new Map();
@@ -39,105 +39,123 @@ export default async function HistoryPage() {
   const topRejected = Object.entries(rejectionCounts)
     .filter(([, count]) => count >= 2)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+    .slice(0, 6);
 
   return (
     <>
-      <Header />
-      <main className="flex-1 px-4 py-10">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-sage-dim text-sage flex-shrink-0">
-              <Clock size={20} />
-            </span>
-            <div>
-              <p className="font-meta text-xs uppercase tracking-widest text-sage">
-                Your patterns
-              </p>
-              <h1 className="font-card text-2xl leading-tight">History</h1>
-            </div>
-          </div>
+      <main className="flex-1 px-4 pt-8 pb-28">
+        <div className="max-w-md mx-auto space-y-6">
+          <GreetingHeader
+            subtitle="Kitchen insights"
+            title="Recipe History"
+          />
 
           {topRejected.length > 0 && (
-            <div className="bg-white rounded-2xl card-shadow p-5">
-              <p className="font-meta text-xs uppercase tracking-wide text-ink-soft mb-3 flex items-center gap-1.5">
-                <TrendingDown size={14} className="text-stamp" />
-                Dishes you keep saying no to
+            <div className="bg-card rounded-3xl card-shadow p-5">
+              <p className="font-heading font-semibold text-sm mb-3 flex items-center gap-1.5">
+                <TrendingDown size={15} className="text-danger" />
+                Foods you usually skip
               </p>
               <div className="flex flex-wrap gap-2">
-                {topRejected.map(([name, count]) => (
+                {topRejected.map(([name]) => (
                   <span
                     key={name}
-                    className="text-sm bg-stamp-dim border border-clay rounded-lg px-2.5 py-1.5"
+                    className="text-xs font-medium bg-tag text-tag-text rounded-full px-3 py-1.5"
                   >
-                    {name} · {count}×
+                    {name}
                   </span>
                 ))}
               </div>
             </div>
           )}
 
+          <div className="flex items-center justify-between">
+            <p className="font-heading font-semibold text-sm">
+              Past sessions
+            </p>
+            <ExportHistoryButton rows={rows || []} />
+          </div>
+
           {sessions.length === 0 && (
-            <div className="bg-white rounded-2xl card-shadow p-10 text-center">
+            <div className="bg-card rounded-3xl card-shadow p-10 text-center">
               <CalendarX className="mx-auto mb-3 text-ink-soft" size={28} />
               <p className="text-ink-soft text-sm">
-                No check-ins yet — go make your first decision on the Decide
-                page.
+                No check-ins yet — head to Home to make your first decision.
               </p>
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sessions.map((session) => {
               const accepted = session.find((r) => r.status === "accepted");
               const rejected = session.filter((r) => r.status === "rejected");
               const latest = session[0];
-              const EnergyIcon = ENERGY_ICON[latest.energy] || BatteryMedium;
+              const dish = accepted || latest;
+              const isDecided = !!accepted;
 
               return (
                 <div
                   key={latest.session_id}
-                  className="bg-white rounded-2xl card-shadow p-5 hover:card-shadow-lg transition-shadow"
+                  className="bg-card rounded-3xl card-shadow overflow-hidden"
                 >
-                  <p className="font-meta text-xs text-ink-soft mb-2 flex items-center gap-1.5">
-                    {new Date(latest.created_at).toLocaleDateString(
-                      undefined,
-                      { month: "short", day: "numeric", year: "numeric" }
-                    )}
-                    <span className="inline-flex items-center gap-1 ml-1">
-                      <EnergyIcon size={12} />
-                      {latest.energy}
+                  <div className="relative h-24 bg-gradient-to-br from-green to-green-dark flex items-end p-4">
+                    <span
+                      className={`absolute top-3 right-3 flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        isDecided
+                          ? "bg-cream text-green"
+                          : "bg-danger-tint text-danger"
+                      }`}
+                    >
+                      {isDecided ? "✓ Decided" : "✕ Undecided"}
                     </span>
-                  </p>
-
-                  {accepted ? (
-                    <p className="font-card text-lg mb-1">
-                      {accepted.dish_name}
+                    <p className="font-heading font-bold text-lg text-cream leading-tight pr-24">
+                      {dish.dish_name}
                     </p>
-                  ) : (
-                    <p className="font-card text-lg mb-1 text-ink-soft">
-                      Undecided
-                    </p>
-                  )}
+                  </div>
 
-                  {rejected.length > 0 && (
-                    <p className="text-xs text-ink-soft font-meta">
-                      <span className="uppercase tracking-wide">
-                        Not today:{" "}
+                  <div className="p-4 space-y-2">
+                    <p className="font-meta text-xs text-ink-soft flex items-center gap-3">
+                      {new Date(latest.created_at).toLocaleDateString(
+                        undefined,
+                        { month: "short", day: "numeric", year: "numeric" }
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Gauge size={12} />
+                        {latest.energy}
                       </span>
-                      {rejected.map((r, i) => (
-                        <span key={i} className="line-through mr-2">
-                          {r.dish_name}
+                      {dish.time_minutes && (
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {dish.time_minutes}m
                         </span>
-                      ))}
+                      )}
                     </p>
-                  )}
+
+                    <p className="text-xs text-ink-soft">
+                      <span className="font-medium">Ingredients: </span>
+                      {latest.ingredients}
+                    </p>
+
+                    {rejected.length > 0 && (
+                      <p className="text-xs text-ink-soft font-meta pt-1">
+                        <span className="uppercase tracking-wide">
+                          Not today:{" "}
+                        </span>
+                        {rejected.map((r, i) => (
+                          <span key={i} className="line-through mr-2">
+                            {r.dish_name}
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
       </main>
+      <BottomNav />
     </>
   );
 }
