@@ -1,5 +1,8 @@
 import Header from "@/components/Header";
 import { createClient } from "@/lib/supabase/server";
+import { Clock, TrendingDown, CalendarX, BatteryLow, BatteryMedium, BatteryFull } from "lucide-react";
+
+const ENERGY_ICON = { low: BatteryLow, medium: BatteryMedium, high: BatteryFull };
 
 function groupBySession(rows) {
   const sessions = new Map();
@@ -42,24 +45,30 @@ export default async function HistoryPage() {
     <>
       <Header />
       <main className="flex-1 px-4 py-10">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <div>
-            <p className="font-meta text-xs uppercase tracking-widest text-sage mb-1">
-              Your patterns
-            </p>
-            <h1 className="font-card text-2xl">History</h1>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-sage-dim text-sage flex-shrink-0">
+              <Clock size={20} />
+            </span>
+            <div>
+              <p className="font-meta text-xs uppercase tracking-widest text-sage">
+                Your patterns
+              </p>
+              <h1 className="font-card text-2xl leading-tight">History</h1>
+            </div>
           </div>
 
           {topRejected.length > 0 && (
-            <div className="bg-stamp-dim border border-clay rounded-sm p-4">
-              <p className="font-meta text-xs uppercase tracking-wide text-ink-soft mb-2">
+            <div className="bg-white rounded-2xl card-shadow p-5">
+              <p className="font-meta text-xs uppercase tracking-wide text-ink-soft mb-3 flex items-center gap-1.5">
+                <TrendingDown size={14} className="text-stamp" />
                 Dishes you keep saying no to
               </p>
               <div className="flex flex-wrap gap-2">
                 {topRejected.map(([name, count]) => (
                   <span
                     key={name}
-                    className="text-sm bg-white/70 border border-clay rounded-sm px-2 py-1"
+                    className="text-sm bg-stamp-dim border border-clay rounded-lg px-2.5 py-1.5"
                   >
                     {name} · {count}×
                   </span>
@@ -69,29 +78,36 @@ export default async function HistoryPage() {
           )}
 
           {sessions.length === 0 && (
-            <p className="text-ink-soft text-sm">
-              No check-ins yet — go make your first decision on the Decide
-              page.
-            </p>
+            <div className="bg-white rounded-2xl card-shadow p-10 text-center">
+              <CalendarX className="mx-auto mb-3 text-ink-soft" size={28} />
+              <p className="text-ink-soft text-sm">
+                No check-ins yet — go make your first decision on the Decide
+                page.
+              </p>
+            </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sessions.map((session) => {
               const accepted = session.find((r) => r.status === "accepted");
               const rejected = session.filter((r) => r.status === "rejected");
               const latest = session[0];
+              const EnergyIcon = ENERGY_ICON[latest.energy] || BatteryMedium;
 
               return (
                 <div
                   key={latest.session_id}
-                  className="bg-white/60 border border-clay rounded-sm p-5"
+                  className="bg-white rounded-2xl card-shadow p-5 hover:card-shadow-lg transition-shadow"
                 >
-                  <p className="font-meta text-xs text-ink-soft mb-2">
+                  <p className="font-meta text-xs text-ink-soft mb-2 flex items-center gap-1.5">
                     {new Date(latest.created_at).toLocaleDateString(
                       undefined,
                       { month: "short", day: "numeric", year: "numeric" }
-                    )}{" "}
-                    · energy: {latest.energy}
+                    )}
+                    <span className="inline-flex items-center gap-1 ml-1">
+                      <EnergyIcon size={12} />
+                      {latest.energy}
+                    </span>
                   </p>
 
                   {accepted ? (
