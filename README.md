@@ -24,7 +24,7 @@ running log of your own food decisions rather than a static database of recipes.
 
 ## b. Live URL
 
-🔗 https://what-now-ffq1-mefe4v0ys-madiha2.vercel.app/login
+🔗 https://what-now-ffq1.vercel.app/login
 
 ## c. Features
 
@@ -115,11 +115,14 @@ built into the model itself.
 2. A generated recommendation card
 3. The history page
 
-```markdown
-![Check-in form](./screenshots/checkin.png)
-![Recommendation card](./screenshots/recommendation.png)
-![History page](./screenshots/history.png)
-```
+
+| Login Screen | Recommended Recipe |
+|---------------|--------------------|
+| ![](./login.jpeg) | ![](./recommended%20recipe.jpeg) |
+
+| Profile Screen | Recipe History |
+|----------------|----------------|
+| ![](./profile.jpeg) | ![](./history%20of%20recipes.jpeg) |
 
 ## g. How to run this project
 
