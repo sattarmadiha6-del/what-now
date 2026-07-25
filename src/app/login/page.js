@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ChefHat, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,8 +48,11 @@ export default function LoginPage() {
 
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm animate-card-in">
         <div className="text-center mb-8">
+          <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-ink text-cream mb-4">
+            <ChefHat size={22} strokeWidth={2.25} />
+          </span>
           <p className="font-meta text-xs tracking-widest uppercase text-ink-soft mb-2">
             What Now?
           </p>
@@ -59,10 +63,10 @@ export default function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white/60 border border-clay rounded-sm p-6 space-y-4"
+          className="bg-white rounded-2xl card-shadow-lg p-6 space-y-4"
         >
           <div>
-            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1">
+            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1.5">
               Email
             </label>
             <input
@@ -70,12 +74,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-clay bg-cream rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sage"
+              className="w-full border border-clay bg-cream/60 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-sage transition-shadow"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1">
+            <label className="block font-meta text-xs uppercase tracking-wide text-ink-soft mb-1.5">
               Password
             </label>
             <input
@@ -84,7 +88,7 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-clay bg-cream rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sage"
+              className="w-full border border-clay bg-cream/60 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-sage transition-shadow"
               placeholder="At least 6 characters"
             />
           </div>
@@ -95,17 +99,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-ink text-cream rounded-sm py-2.5 font-medium hover:bg-ink-soft transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-ink text-cream rounded-xl py-3 font-medium text-sm hover:bg-stamp transition-colors disabled:opacity-50"
           >
-            {loading
-              ? "One moment…"
-              : mode === "login"
-              ? "Log in"
-              : "Sign up"}
+            {loading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <>
+                {mode === "login" ? "Log in" : "Sign up"}
+                <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
 
-        <p className="text-center text-sm text-ink-soft mt-4">
+        <p className="text-center text-sm text-ink-soft mt-5">
           {mode === "login" ? "New here?" : "Already have an account?"}{" "}
           <button
             onClick={() => {
@@ -113,7 +120,7 @@ export default function LoginPage() {
               setError("");
               setInfo("");
             }}
-            className="underline underline-offset-2 hover:text-ink"
+            className="underline underline-offset-2 hover:text-stamp transition-colors"
           >
             {mode === "login" ? "Create an account" : "Log in"}
           </button>
